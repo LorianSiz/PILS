@@ -18,6 +18,18 @@ def VerifFloat():
     except ValueError:
         return False
 
+def VerifXYFormat():
+    try:
+        listeRGB = txtBoxBase.get().split(",")
+        if len(listeRGB) == 2:
+            float(listeRGB[0])
+            float(listeRGB[1])
+            return True
+        else:
+            return False
+    except ValueError:
+        return False
+
 def VerifRGBFormat():
     try:
         listeRGB = txtBoxBase.get().split(",")
@@ -83,7 +95,9 @@ def FCAP():
             pen.seth(angle)
 
 def FPOS():
-    pen.setposition(60, 30)
+    if VerifXYFormat():
+        listeCoor = txtBoxBase.get().split(",")
+        pen.setposition(float(listeCoor[0]), float(listeCoor[1]))
 
 def Repeter():
     for x in range(6):
