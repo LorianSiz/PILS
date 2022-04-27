@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter.colorchooser import askcolor
 import turtle
+import re
 
 
 # Création de la tortue
@@ -11,22 +12,111 @@ pen = turtle.Turtle()
 listeHistorique = []
 tab = ""
 profondeur = 0
+ancienneProfondeur = 0
+compteurPos = -1
+listePosition = []
+listeFinPosition = []
 
 
 # Définition des fonctions
-def AjouterListe(commande):
-    listeBoxHistorique.insert(END, tab + commande)
-    listeHistorique.append(commande)
+def AccederSousListe(liste, position):
+    if len(position) > 1:
+        return AccederSousListe(liste[position[0]][0], position[1:])
+    else:
+        return liste[position[0]][0]
+
+def AjouterListe(commandeHistorique, commandName, arguments):
+    global profondeur
+    global ancienneProfondeur
+    global compteurPos
+
+    compteurPos += 1
+    listeBoxHistorique.insert(END, tab + commandeHistorique)
+    if profondeur == ancienneProfondeur:
+        listeHistorique.append((commandName, arguments))
+    else:
+        AccederSousListe(listeHistorique, listePosition).append((commandName, arguments))
+
+def SupprimerSousListe(liste, compteur):
+    pasAtteint = True
+    i = 0
+    while pasAtteint and compteur > 0:
+        if compteur == 1:
+            if isinstance(liste[i][0], list):
+                liste.pop(i + 1)
+                liste.pop(i)
+            elif liste[i][0] == "finRepeter":
+                liste.pop(i)
+                liste.pop(i - 1)
+            pasAtteint = False
+            break
+        if isinstance(liste[i][0], list):
+            if len(liste[i][0]) > 0:
+                res = SupprimerSousListe(liste[i][0], compteur-1)
+                if not res[0]:
+                    pasAtteint = False
+                    break
+                else:
+                    compteur -= res[1]
+            else:
+                i += 1
+                compteur -= 1
+
+        else:
+            i += 1
+            compteur -= 1
+
+    return (pasAtteint, compteur)
+
+
 
 def SupprimerListe():
     index = listeBoxHistorique.curselection()[0]
-    listeBoxHistorique.delete(index)
-    listeHistorique.pop(int(index))
+
+    aTiret = True
+    tempMot = listeBoxHistorique.get(index)
+    nbTiret = 0
+    while aTiret:
+        if tempMot[0] == '-':
+            tempMot = tempMot[1:]
+            nbTiret += 1
+        else:
+            aTiret = False
+    if tempMot[0:5] == "Début":
+        pasTrouve = True
+        i = index
+        while pasTrouve and i < listeBoxHistorique.size():
+            if re.search("^[\-]{" + str(nbTiret) + "}Fin$", listeBoxHistorique.get(i)[0:3 + nbTiret]):
+                listeBoxHistorique.delete(i)
+                pasTrouve = False
+            else:
+                i += 1
+        listeBoxHistorique.delete(index)
+    elif tempMot[0:3] == "Fin":
+        listeBoxHistorique.delete(index)
+        pasTrouve = True
+        i = index
+        while pasTrouve and i >= 0:
+            if re.search("^[\-]{" + str(nbTiret) + "}Début$", listeBoxHistorique.get(i)[0:5 + nbTiret]):
+                listeBoxHistorique.delete(i)
+                pasTrouve = False
+            else:
+                i -= 1
+    else:
+        listeBoxHistorique.delete(index)
+    SupprimerSousListe(listeHistorique, int(index)+1)
     #redo commande liste
 
 def VerifFloat():
     try:
         float(txtBoxBase.get())
+        return True
+    except ValueError:
+        return False
+
+def VerifInt():
+    try:
+        int(txtBoxBase.get())
         return True
     except ValueError:
         return False
@@ -61,48 +151,48 @@ def ChoixCouleur():
     if couleurs[0] != None:
         pen.pencolor(couleurs[0])
         btnCouleur["bg"] = couleurs[1]
-        AjouterListe("Changer couleur en " + str(couleurs[0][0]) + "," + str(couleurs[0][1]) + "," + str(couleurs[0][2]))
+        AjouterListe("Changer couleur en " + str(couleurs[0][0]) + "," + str(couleurs[0][1]) + "," + str(couleurs[0][2]), "choixCouleur", couleurs[0])
 
 def Avancer():
     if VerifFloat():
         pen.forward(float(txtBoxBase.get()))
-        AjouterListe("Avancer " + txtBoxBase.get())
+        AjouterListe("Avancer " + txtBoxBase.get(), "avancer", txtBoxBase.get())
 
 def Reculer():
     if VerifFloat():
         pen.backward(float(txtBoxBase.get()))
-        AjouterListe("Reculer " + txtBoxBase.get())
+        AjouterListe("Reculer " + txtBoxBase.get(), "reculer", txtBoxBase.get())
 
 def TournerGauche():
     if VerifFloat():
         pen.left(float(txtBoxBase.get()))
-        AjouterListe("Tourner à gauche " + txtBoxBase.get())
+        AjouterListe("Tourner à gauche " + txtBoxBase.get(), "gauche", txtBoxBase.get())
 
 def TournerDroite():
     if VerifFloat():
         pen.right(float(txtBoxBase.get()))
-        AjouterListe("Tourner à droite " + txtBoxBase.get())
+        AjouterListe("Tourner à droite " + txtBoxBase.get(), "droite", txtBoxBase.get())
 
 def LeverCrayon():
     pen.penup()
-    AjouterListe("Lever le crayon")
+    AjouterListe("Lever le crayon", "leverCrayon", "")
 
 def BaisserCrayon():
     pen.pendown()
-    AjouterListe("Baisser le crayon")
+    AjouterListe("Baisser le crayon", "baisserCrayon", "")
 
 def Origine():
     pen.home()
-    AjouterListe("Retour à l'origine")
+    AjouterListe("Retour à l'origine", "origine", "")
 
 def Restaurer():
     pen.home()
     pen.clear()
-    AjouterListe("Restaurer")
+    AjouterListe("Restaurer", "restaurer", "")
 
 def Nettoyer():
     pen.clear()
-    AjouterListe("Nettoyer")
+    AjouterListe("Nettoyer", "nettoyer", "")
 
 def FCC():
     if VerifRGBFormat():
@@ -110,39 +200,65 @@ def FCC():
         couleur = (int(listeRGB[0]), int(listeRGB[1]), int(listeRGB[2]))
         pen.pencolor(couleur)
         btnCouleur["bg"] = '#%02x%02x%02x' % couleur
-        AjouterListe("Changer couleur en " + listeRGB[0] + "," + listeRGB[1] + "," + listeRGB[2])
+        AjouterListe("Changer couleur en " + listeRGB[0] + "," + listeRGB[1] + "," + listeRGB[2], "fcc", (couleur, '#%02x%02x%02x' % couleur))
 
 def FCAP():
     if VerifFloat():
         angle = float(txtBoxBase.get())
         if angle <= 360 and angle >= 0:
             pen.seth(angle)
-            AjouterListe("Changer angle " + txtBoxBase.get() + "°")
+            AjouterListe("Changer angle " + txtBoxBase.get() + "°", "angle", txtBoxBase.get())
 
 def FPOS():
     if VerifXYFormat():
         listeCoor = txtBoxBase.get().split(",")
         pen.setposition(float(listeCoor[0]), float(listeCoor[1]))
-        AjouterListe("Changer position pour x: " + listeCoor[0] + ", y:" + listeCoor[1])
+        AjouterListe("Changer position pour x: " + listeCoor[0] + ", y:" + listeCoor[1], "position", listeCoor)
 
 def Repeter():
     global tab
     global profondeur
+    global compteurPos
 
-    AjouterListe("Début répéter")
-    profondeur += 1
-    tab += "-"
-    btnFinRepeter["state"] = NORMAL
+    if VerifInt():
+        AjouterListe("Début répéter " + txtBoxBase.get() + " fois", list(), txtBoxBase.get())
+        listePosition.append(compteurPos)
+        compteurPos = -1
+        profondeur += 1
+        tab += "-"
+        btnFinRepeter["state"] = NORMAL
+
+def LancerActionsRepeter(liste, nombreBoucles, position):
+    for i in range(len(liste)):
+        if liste[i][0] != "finRepeter":
+            if len(position) > 0:
+                if position[0] == i:
+                    for y in range(nombreBoucles):
+                        LancerActionsRepeter(liste[i][0], int(liste[i][1]), position[1:])
+                else:
+                    for y in range(nombreBoucles):
+                        print(liste[i])
+            else:
+                for y in range(nombreBoucles):
+                    print(liste[i])
 
 def FinRepeter():
     global tab
     global profondeur
+    global compteurPos
+    global listeFinPosition
 
+    dernier = len(listePosition) - 1
+    compteurPos = listePosition[dernier]
+    listeFinPosition.insert(0, listePosition.pop(dernier))
     profondeur -= 1
     tab = tab[:-1]
-    AjouterListe("Fin répéter")
+    AjouterListe("Fin répéter", "finRepeter", "")
     if profondeur == 0:
         btnFinRepeter["state"] = DISABLED
+        avantDernier = len(listeHistorique)-2
+        LancerActionsRepeter(listeHistorique[avantDernier][0], int(listeHistorique[avantDernier][1]), listeFinPosition[1:])
+        listeFinPosition = []
 
 def Enregistrer():
     print("Enregistrer en xml")
