@@ -50,6 +50,9 @@ def Repeter():
     for x in range(6):
         turtle.forward(10)
 
+def FinRepeter():
+    print("fin")
+
 def Enregistrer():
     print("Enregistrer en xml")
 
@@ -100,6 +103,7 @@ btnFCC = Button(panelCommandes, text="changer couleur", font=("Helvetica", 12), 
 btnFCAP = Button(panelCommandes, text="changer angle", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=FCAP)
 btnFPOS = Button(panelCommandes, text="changer position", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=FPOS)
 btnRepeter = Button(panelCommandes, text="répéter", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=Repeter)
+btnFinRepeter = Button(panelCommandes, text="fin répéter", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, state= DISABLED, command=FinRepeter)
 btnEnregistrer = Button(panelXML, text="enregistrer", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=Enregistrer)
 btnCharger = Button(panelXML, text="charger", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=Charger)
 listeBoxHistorique = Listbox(panelHistorique, bg=couleurFond)
@@ -122,6 +126,7 @@ btnFCC.pack(fill=X, ipadx=55)
 btnFCAP.pack(fill=X, ipadx=55)
 btnFPOS.pack(fill=X, ipadx=55)
 btnRepeter.pack(fill=X, ipadx=55)
+btnFinRepeter.pack(fill=X, ipadx=55)
 btnEnregistrer.pack(fill=X, ipadx=55)
 btnCharger.pack(fill=X, ipadx=55)
 listeBoxHistorique.pack(fill=X)
