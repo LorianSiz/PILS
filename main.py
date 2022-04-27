@@ -7,10 +7,23 @@ import turtle
 turtle.colormode(255)
 pen = turtle.Turtle()
 
+# Variables globales
 listeHistorique = []
+tab = ""
+profondeur = 0
 
 
 # Définition des fonctions
+def AjouterListe(commande):
+    listeBoxHistorique.insert(END, tab + commande)
+    listeHistorique.append(commande)
+
+def SupprimerListe():
+    index = listeBoxHistorique.curselection()[0]
+    listeBoxHistorique.delete(index)
+    listeHistorique.pop(int(index))
+    #redo commande liste
+
 def VerifFloat():
     try:
         float(txtBoxBase.get())
@@ -47,73 +60,95 @@ def ChoixCouleur():
     couleurs = askcolor(title="Palette de couleurs")
     if couleurs[0] != None:
         pen.pencolor(couleurs[0])
-        btnCouleur.configure(bg=couleurs[1])
+        btnCouleur["bg"] = couleurs[1]
+        AjouterListe("Changer couleur en " + str(couleurs[0][0]) + "," + str(couleurs[0][1]) + "," + str(couleurs[0][2]))
 
 def Avancer():
     if VerifFloat():
         pen.forward(float(txtBoxBase.get()))
+        AjouterListe("Avancer " + txtBoxBase.get())
 
 def Reculer():
     if VerifFloat():
         pen.backward(float(txtBoxBase.get()))
+        AjouterListe("Reculer " + txtBoxBase.get())
 
 def TournerGauche():
     if VerifFloat():
         pen.left(float(txtBoxBase.get()))
+        AjouterListe("Tourner à gauche " + txtBoxBase.get())
 
 def TournerDroite():
     if VerifFloat():
         pen.right(float(txtBoxBase.get()))
+        AjouterListe("Tourner à droite " + txtBoxBase.get())
 
 def LeverCrayon():
     pen.penup()
+    AjouterListe("Lever le crayon")
 
 def BaisserCrayon():
     pen.pendown()
+    AjouterListe("Baisser le crayon")
 
 def Origine():
     pen.home()
+    AjouterListe("Retour à l'origine")
 
 def Restaurer():
     pen.home()
     pen.clear()
+    AjouterListe("Restaurer")
 
 def Nettoyer():
     pen.clear()
+    AjouterListe("Nettoyer")
 
 def FCC():
     if VerifRGBFormat():
         listeRGB = txtBoxBase.get().split(",")
         couleur = (int(listeRGB[0]), int(listeRGB[1]), int(listeRGB[2]))
         pen.pencolor(couleur)
-        btnCouleur.configure(bg='#%02x%02x%02x' % couleur)
+        btnCouleur["bg"] = '#%02x%02x%02x' % couleur
+        AjouterListe("Changer couleur en " + listeRGB[0] + "," + listeRGB[1] + "," + listeRGB[2])
 
 def FCAP():
     if VerifFloat():
         angle = float(txtBoxBase.get())
         if angle <= 360 and angle >= 0:
             pen.seth(angle)
+            AjouterListe("Changer angle " + txtBoxBase.get() + "°")
 
 def FPOS():
     if VerifXYFormat():
         listeCoor = txtBoxBase.get().split(",")
         pen.setposition(float(listeCoor[0]), float(listeCoor[1]))
+        AjouterListe("Changer position pour x: " + listeCoor[0] + ", y:" + listeCoor[1])
 
 def Repeter():
-    for x in range(6):
-        pen.forward(10)
+    global tab
+    global profondeur
+
+    AjouterListe("Début répéter")
+    profondeur += 1
+    tab += "-"
+    btnFinRepeter["state"] = NORMAL
 
 def FinRepeter():
-    print("fin")
+    global tab
+    global profondeur
+
+    profondeur -= 1
+    tab = tab[:-1]
+    AjouterListe("Fin répéter")
+    if profondeur == 0:
+        btnFinRepeter["state"] = DISABLED
 
 def Enregistrer():
     print("Enregistrer en xml")
 
 def Charger():
     print("Charger en xml")
-
-def Supprimer():
-    print("Supprimer de l'historique")
 
 
 # Définition du style de la page
@@ -135,6 +170,11 @@ panelGauche = Frame(fen, bg=couleurPanel)
 panelDroite = Frame(fen, bg=couleurPanel)
 
 panelCommandes = Frame(panelGauche, bg=couleurPanel) #Voir couleur cest pas a nous
+panelDeplacement = Frame(panelCommandes, bg=couleurPanel)
+panelCrayon = Frame(panelCommandes, bg=couleurPanel)
+panelSpeciale = Frame(panelCommandes, bg=couleurPanel)
+panelChanger = Frame(panelCommandes, bg=couleurPanel)
+panelRepeter = Frame(panelCommandes, bg=couleurPanel)
 panelHistorique = Frame(panelDroite, bg=couleurPanel)
 panelXML = Frame(panelDroite, bg=couleurPanel)
 panelOptions = Frame(panelDroite, bg=couleurPanel) #Changer la tortue, autres?
@@ -156,11 +196,11 @@ btnFCC = Button(panelCommandes, text="changer couleur", font=("Helvetica", 12), 
 btnFCAP = Button(panelCommandes, text="changer angle", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=FCAP)
 btnFPOS = Button(panelCommandes, text="changer position", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=FPOS)
 btnRepeter = Button(panelCommandes, text="répéter", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=Repeter)
-btnFinRepeter = Button(panelCommandes, text="fin répéter", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, state= DISABLED, command=FinRepeter)
+btnFinRepeter = Button(panelCommandes, text="fin répéter", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, state=DISABLED, command=FinRepeter)
 btnEnregistrer = Button(panelXML, text="enregistrer", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=Enregistrer)
 btnCharger = Button(panelXML, text="charger", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=Charger)
 listeBoxHistorique = Listbox(panelHistorique, bg=couleurFond)
-btnSupprimer = Button(panelOptions, text="supprimer commande", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=Supprimer)
+btnSupprimer = Button(panelOptions, text="supprimer commande", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=SupprimerListe)
 #Bouton quitter?
 
 
