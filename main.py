@@ -152,10 +152,13 @@ def VerifRGBFormat():
     try:
         listeRGB = txtBoxBase.get().split(",")
         if len(listeRGB) == 3:
-            int(listeRGB[0])
-            int(listeRGB[1])
-            int(listeRGB[2])
-            return True
+            rg1 = int(listeRGB[0])
+            rg2 = int(listeRGB[1])
+            rg3 = int(listeRGB[2])
+            if (0 <= rg1 <= 255 and 0 <= rg2 <= 255 and 0 <= rg3 <= 255):
+                return True
+            else:
+                return False
         else:
             return False
     except ValueError:
@@ -236,13 +239,14 @@ def Repeter():
     global compteurPos
 
     if VerifInt():
-        AjouterListe("Début répéter " + txtBoxBase.get() + " fois", list(), txtBoxBase.get())
-        listePosition.append(compteurPos)
-        compteurPos = -1
-        profondeur += 1
-        tab += "-"
-        btnFinRepeter["state"] = NORMAL
-        btnSupprimer["state"] = DISABLED
+        if int(txtBoxBase.get()) > 0:
+            AjouterListe("Début répéter " + txtBoxBase.get() + " fois", list(), txtBoxBase.get())
+            listePosition.append(compteurPos)
+            compteurPos = -1
+            profondeur += 1
+            tab += "-"
+            btnFinRepeter["state"] = NORMAL
+            btnSupprimer["state"] = DISABLED
 
 def LancerActionsRepeter(liste, nombreBoucles, position):
     for i in range(len(liste)):
