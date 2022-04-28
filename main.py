@@ -242,6 +242,7 @@ def Repeter():
         profondeur += 1
         tab += "-"
         btnFinRepeter["state"] = NORMAL
+        btnSupprimer["state"] = DISABLED
 
 def LancerActionsRepeter(liste, nombreBoucles, position):
     for i in range(len(liste)):
@@ -276,6 +277,7 @@ def FinRepeter():
         LancerActionsRepeter(listeHistorique[avantDernier][0], int(listeHistorique[avantDernier][1]), listeFinPosition[1:])
         listeFinPosition = []
         ancienneProfondeur = 0
+        btnSupprimer["state"] = NORMAL
 
 def Enregistrer():
     print("Enregistrer en xml")
