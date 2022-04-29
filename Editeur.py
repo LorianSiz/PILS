@@ -237,6 +237,19 @@ class Editeur:
             self.inBoucle = []
             self.btnFinRepeter["state"] = DISABLED
 
+    def ReprendreEnvoi(self):
+        self.btnReprendreEnvoi["state"] = DISABLED
+        self.btnArreterEnvoi["state"] = NORMAL
+        self.btnEnvoyer["state"] = DISABLED
+
+    def ArreterEnvoi(self):
+        self.btnReprendreEnvoi["state"] = NORMAL
+        self.btnArreterEnvoi["state"] = DISABLED
+        self.btnEnvoyer["state"] = NORMAL
+
+    def Envoyer(self):
+        print("Envoyer commandes")
+
 #----------------------------------------------------------------------------------------------------------------------#
 
 
@@ -252,13 +265,13 @@ class Editeur:
         self.nbRep = 0
 
         self.master.title("Editeur")
-        self.master.geometry("600x550")  # A voir si on change la taille
+        self.master.geometry("570x550")  # A voir si on change la taille
         self.master.resizable(False, False)
 
-        couleurPanel = '#777777'
-        couleurBtn = '#335c67'
-        couleurTxt = '#fff3b0'
-        couleurFond = '#e09f3e'
+        couleurPanel = '#171717'
+        couleurBtn = '#2b2b2b' #1e2129
+        couleurTxt = '#ffffff'
+        couleurFond = '#c2c3c4'
 
         # Création des panels
         self.panelHaut = Frame(self.master, bg=couleurPanel)
@@ -292,43 +305,52 @@ class Editeur:
         self.btnFPOS = Button(self.panelCommandes, text="changer position", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.FPOS)
         self.btnRepeter = Button(self.panelCommandes, text="répéter", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.Repeter)
         self.btnFinRepeter = Button(self.panelCommandes, text="fin répéter", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, state=DISABLED, command=self.FinRepeter)
-        self.btnEnregistrer = Button(self.panelXML, text="enregistrer", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SaveXML())
-        self.btnCharger = Button(self.panelXML, text="charger", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.LoadXML())
-        self.listeBoxHistorique = Listbox(self.panelHistorique, bg=couleurFond)
+        self.btnEnregistrer = Button(self.panelOptions, text="enregistrer", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SaveXML())
+        self.btnCharger = Button(self.panelOptions, text="charger", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.LoadXML())
+        self.listeBoxHistorique = Listbox(self.panelHistorique, height=15, bg=couleurFond)
         self.btnSupprimer = Button(self.panelOptions, text="supprimer commande", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SuppCmd)
+        self.btnReprendreEnvoi = Button(self.panelOptions, text="reprendre l'envoi", font=("Helvetica", 12), bg=couleurBtn,fg=couleurTxt, command=self.ReprendreEnvoi)
+        self.btnArreterEnvoi = Button(self.panelOptions, text="arrêter l'envoi", font=("Helvetica", 12), bg=couleurBtn,fg=couleurTxt, command=self.ArreterEnvoi)
+        self.btnEnvoyer = Button(self.panelOptions, text="envoyer", font=("Helvetica", 12), bg=couleurBtn,fg=couleurTxt, command=self.Envoyer)
         # Bouton quitter?
 
         # Disposition des éléments sur les panels
-        self.txtBoxBase.pack(fill=X, padx=(50, 0), pady=(10, 10), side=LEFT)
-        self.btnCouleur.pack(side=RIGHT, padx=20)
+        self.txtBoxBase.pack(fill=X, padx=(50, 0), pady=10, side=LEFT)
+        self.btnCouleur.pack(side=RIGHT, padx=20, pady=10)
+
         self.btnAvancer.pack(fill=X, ipadx=55)
-        self.btnReculer.pack(fill=X, ipadx=55)
+        self.btnReculer.pack(fill=X, ipadx=55, pady=(0,5))
         self.btnTournerGauche.pack(fill=X, ipadx=55)
-        self.btnTournerDroite.pack(fill=X, ipadx=55)
+        self.btnTournerDroite.pack(fill=X, ipadx=55, pady=(0,5))
         self.btnLeverCrayon.pack(fill=X, ipadx=55)
-        self.btnBaisserCrayon.pack(fill=X, ipadx=55)
+        self.btnBaisserCrayon.pack(fill=X, ipadx=55, pady=(0,5))
         self.btnOrigine.pack(fill=X, ipadx=55)
         self.btnRestaurer.pack(fill=X, ipadx=55)
-        self.btnNettoyer.pack(fill=X, ipadx=55)
+        self.btnNettoyer.pack(fill=X, ipadx=55, pady=(0,5))
         self.btnFCC.pack(fill=X, ipadx=55)
         self.btnFCAP.pack(fill=X, ipadx=55)
-        self.btnFPOS.pack(fill=X, ipadx=55)
+        self.btnFPOS.pack(fill=X, ipadx=55, pady=(0,5))
         self.btnRepeter.pack(fill=X, ipadx=55)
-        self.btnFinRepeter.pack(fill=X, ipadx=55)
+        self.btnFinRepeter.pack(fill=X, ipadx=55, pady=(0,5))
+
+        self.listeBoxHistorique.pack(fill=X)
+
+        self.btnSupprimer.pack(fill=X, ipadx=55, pady=(0,5))
+        self.btnReprendreEnvoi.pack(fill=X, ipadx=55)
+        self.btnArreterEnvoi.pack(fill=X, ipadx=55)
+        self.btnEnvoyer.pack(fill=X, ipadx=55, pady=(0,5))
         self.btnEnregistrer.pack(fill=X, ipadx=55)
         self.btnCharger.pack(fill=X, ipadx=55)
-        self.listeBoxHistorique.pack(fill=X)
-        self.btnSupprimer.pack(fill=X, ipadx=55)
 
         # Disposition des panels sur la fenêtre
-        self.panelHaut.pack(fill=X, padx=10, pady=10, side=TOP)
+        self.panelHaut.pack(fill=X, side=TOP)
+
         self.panelCommandes.pack(fill=X, padx=10, pady=10)
         self.panelHistorique.pack(fill=BOTH, padx=10, pady=10)
         self.panelOptions.pack(fill=X, padx=10, pady=10)
-        self.panelXML.pack(fill=X, padx=10, pady=10)
 
-        self.panelGauche.pack(fill=X, padx=10, side=LEFT)
-        self.panelDroite.pack(fill=X, padx=10, side=RIGHT)
+        self.panelGauche.pack(fill=Y, pady=3, padx=(3,0), side=LEFT)
+        self.panelDroite.pack(fill=Y, pady=3, padx=(0,3), side=RIGHT)
 
         self.adapter.initialisation()
 
