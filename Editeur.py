@@ -1,7 +1,10 @@
 import inspect
+import re
+import xml.etree.ElementTree
 from tkinter import *
 from tkinter.colorchooser import askcolor
 from AdapterEditeur import AdapterEditeur
+import xml.etree.cElementTree as ET
 
 root = Tk()
 
@@ -91,12 +94,75 @@ class Editeur:
             del list[index]
 
 
-    def SaveXML(self):                  #FIXME
-        None
+    def SaveXML(self):                  #FIXME: if not nbBoucle --> error
+        root = ET.Element("Turtle")
 
+        for elem in self.CmdToXMLElement(self.lstCmd):
+            root.append(elem)
 
-    def LoadXML(self):                  #FIXME
-        None
+        xml = ET.ElementTree(root)
+        xml.write("C:\Temp\Test2.xml")
+
+    def LoadXML(self):                  #FIXME : a finir
+        xml = ET.parse("C:\Temp\Test2.xml")
+        root = xml.getroot()
+
+        self.lstCmd = []
+
+        elem = list(root)[0]
+        name = elem.tag
+        attribs = elem.attrib
+        args = []
+        for arg in re.sub("[()]", "", attribs["Arguments"]).split(","):
+            if arg: args.append(arg)
+        print(args)
+        self.lstCmd.append([name, attribs["Texte"], args, int(attribs["Etage"])])
+
+        self.nbBoucle = 0
+        self.inBoucle = []
+        self.RefreshEdit()
+        self.RefreshVisu()
+
+    def CmdToXMLElement(self, _list):
+        list = _list.copy()
+        elemList = []
+        if list:
+            profSousCmd = 0
+            flag = 0
+            sousCmd = []
+            for cmd in list:
+                if (flag) & (cmd[0] == "FinRepeter") & (cmd[3] == profSousCmd):
+                    for elem in self.CmdToXMLElement(sousCmd):
+                        elemList[-1].append(elem)
+                elif flag:
+                    sousCmd.append(cmd)
+                else:
+                    if(cmd[0] == "Repeter"):
+                        flag = 1
+                        profSousCmd = cmd[3]
+
+                    elem = ET.Element(str(cmd[0]))
+                    elem.set("Texte", str(cmd[1]))
+                    elem.set("Arguments", str(cmd[2]))
+                    elem.set("Etage", str(cmd[3]))
+                    elemList.append(elem)
+
+        return elemList
+
+    def XMLElementToCmd(self, _list):
+        list = _list.copy()
+        listCmd = []
+
+        for elem in list:
+            name = elem.tag
+            attribs = elem.attrib
+            args = []
+            for arg in re.sub("[()]","", attribs["Arguments"]).split(","):
+                args.append(arg)
+            del args[-1]
+            listCmd.append([name, attribs["Texte"], args, int(attribs["Etage"])])
+
+        return listCmd
 
 #--------------------------------- Fonction de verification d'Input ---------------------------------------------------#
 
@@ -305,8 +371,8 @@ class Editeur:
         self.btnFPOS = Button(self.panelCommandes, text="changer position", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.FPOS)
         self.btnRepeter = Button(self.panelCommandes, text="répéter", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.Repeter)
         self.btnFinRepeter = Button(self.panelCommandes, text="fin répéter", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, state=DISABLED, command=self.FinRepeter)
-        self.btnEnregistrer = Button(self.panelOptions, text="enregistrer", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SaveXML())
-        self.btnCharger = Button(self.panelOptions, text="charger", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.LoadXML())
+        self.btnEnregistrer = Button(self.panelOptions, text="enregistrer", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SaveXML)
+        self.btnCharger = Button(self.panelOptions, text="charger", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.LoadXML)
         self.listeBoxHistorique = Listbox(self.panelHistorique, height=15, bg=couleurFond)
         self.btnSupprimer = Button(self.panelOptions, text="supprimer commande", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SuppCmd)
         self.btnReprendreEnvoi = Button(self.panelOptions, text="reprendre l'envoi", font=("Helvetica", 12), bg=couleurBtn,fg=couleurTxt, command=self.ReprendreEnvoi)
