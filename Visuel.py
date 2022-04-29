@@ -3,6 +3,9 @@ from tkinter import Tk, Canvas
 import queue
 import turtle
 
+#TODO : make init state for turtle
+#       reset when Restaure()
+
 root = Tk();
 
 
@@ -35,12 +38,11 @@ class Visuel:
     def BaisserCrayon(self, args):      # argument attendu: None
         self.pen.pendown()
 
+    def Restaurer(self, args):                # argument attendu: None
+        self.pen.reset()
+
     def Origine(self, args):            # argument attendu: None
         self.pen.home()
-
-    def Restaurer(self, args):          # argument attendu: None
-        self.pen.home()
-        self.pen.clear()
 
     def Nettoyer(self, args):           # argument attendu: None
         self.pen.clear()
@@ -85,7 +87,7 @@ class Visuel:
         )
         self.canvas.place(x=0, y=0)
         self.screen = turtle.TurtleScreen(self.canvas)
-        self.pen = turtle.RawTurtle(self.screen, shape="turtle")
+        self.pen = turtle.RawTurtle(self.screen, shape="turtle") #TODO : changable
         self.pen.screen.colormode(255)
 
         IvyInit("Visuel")
@@ -103,8 +105,8 @@ class Visuel:
             args = None
             if (len(buffer) > 1):
                 args = buffer[1].split(" ")
-
-            func(self, args)
+            print(args)
+            func(self, args)  #FIXME: peu tomber e erreur si un utilisateur envoie sur le bus 'Visuel -->' erreur a gere
 
 
         if not self.running:

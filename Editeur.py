@@ -1,51 +1,115 @@
 import inspect
-from ivy.std_api import *
 from tkinter import *
 from tkinter.colorchooser import askcolor
+from AdapterEditeur import AdapterEditeur
 
-
-root = Tk();
-
+root = Tk()
 
 class Editeur:
 
-#--------------------------------- Fonction de gestion d'historique ---------------------------------------------------#
+#--------------------------------- Fonction de sctokage ---------------------------------------------------------------#
 
-    def AjouterListe(self, commande):
-        self.listeBoxHistorique.insert(END, self.tab + commande)
-        self.listeHistorique.append(commande)
+    def RefreshEdit(self):
+        self.listeBoxHistorique.delete(0, END)
+        for cmd in self.lstCmd:
+            text = ""
+            for i in range(cmd[3]): text += "-"
+            text += cmd[1]
+            self.listeBoxHistorique.insert(END, text)
 
-    def SupprimerListe(self):
+    def RefreshVisu(self):
+        self.adapter.Restaurer()
+        self.ExecuteBoucle(self.lstCmd, 1)
+
+    def ExecuteBoucle(self, liste, nbRep):
+        for i in range(nbRep):
+            nbRepBoucle = 0
+            listboucle = []
+            for cmd in liste:
+                if(cmd[3] == 0):
+                    if(cmd[0] == "Repeter"): nbRepBoucle = cmd[2][0]
+                    elif(cmd[0] == "FinRepeter"):
+                        self.ExecuteBoucle(listboucle, nbRepBoucle)
+                        listboucle = []
+                    else:
+                        funct = getattr(self.adapter.__class__, cmd[0])
+                        funct(self.adapter, *cmd[2])
+                else:
+                    buffer = cmd.copy()
+                    buffer[3] -= 1
+                    listboucle.append(buffer)
+
+
+    def AddCmd(self, name, texte, *args):
+        if(name == "FinRepeter"): self.nbBoucle-=1
+        if(self.nbBoucle != 0): self.inBoucle.append([name, texte, args, self.nbBoucle-1])
+        text = ""
+        for i in range(self.nbBoucle): text += "-"
+        text += texte
+        self.lstCmd.append([name, texte, args, self.nbBoucle])
+        self.listeBoxHistorique.insert(END, text)
+        if(name == "Repeter"): self.nbBoucle+=1
+
+    def SuppCmd(self):  #TODO : eviter le click sans selelection
         index = self.listeBoxHistorique.curselection()[0]
-        self.listeBoxHistorique.delete(index)
-        self.listeHistorique.pop(int(index))
 
-    def Repeter(self):
-        self.AjouterListe("Début répéter")
-        self.profondeur += 1
-        self.tab += "-"
-        self.btnFinRepeter["state"] = NORMAL
+        self.SuppInList(self.lstCmd, index)
+        if (self.nbBoucle) & (index > self.indexBoucle):
+            self.SuppInList(self.inBoucle, (index - self.indexBoucle - 1))
 
-    def FinRepeter(self):
-        self.profondeur -= 1
-        self.tab = self.tab[:-1]
-        self.AjouterListe("Fin répéter")
-        if self.profondeur == 0:
+        self.nbBoucle = 0;
+        if(self.lstCmd):
+            self.nbBoucle = self.lstCmd[-1][3]
+            if (self.lstCmd[-1][0] == "Repeter"): self.nbBoucle += 1
+        if self.nbBoucle:
+            self.btnFinRepeter["state"] = NORMAL
+        else:
             self.btnFinRepeter["state"] = DISABLED
+            self.inBoucle = []
+
+        self.RefreshEdit()
+        self.RefreshVisu()
+
+    def SuppInList(self, list, index):
+        cmd = list[index].copy()
+
+        if (cmd[0] == "Repeter"):
+            while (len(list) > index):
+                if ((list[index][0] == "FinRepeter") & (list[index][3] == cmd[3])):
+                    del list[index]
+                    break
+                else:
+                    del list[index]
+        elif (cmd[0] == "FinRepeter"):
+            for i in range(index, -1, -1):
+                if ((list[i][0] == "Repeter") & (list[i][3] == cmd[3])):
+                    del list[i]
+                    break
+                else:
+                    del list[i]
+        else:
+            del list[index]
 
 
-    def Enregistrer(self):
-        print("Enregistrer en xml")
+    def SaveXML(self):                  #FIXME
+        None
 
 
-    def Charger(self):
-        print("Charger en xml")
+    def LoadXML(self):                  #FIXME
+        None
 
 #--------------------------------- Fonction de verification d'Input ---------------------------------------------------#
 
     def VerifFloat(self):
         try:
             float(self.txtBoxBase.get())
+            return True
+        except ValueError:
+            return False
+
+    def VerifInt(self):
+        try:
+            int(self.txtBoxBase.get())
             return True
         except ValueError:
             return False
@@ -66,103 +130,112 @@ class Editeur:
         try:
             listeRGB = self.txtBoxBase.get().split(",")
             if len(listeRGB) == 3:
-                int(listeRGB[0])
-                int(listeRGB[1])
-                int(listeRGB[2])
-                return True
+                rg1 = int(listeRGB[0])
+                rg2 = int(listeRGB[1])
+                rg3 = int(listeRGB[2])
+                if (0 <= rg1 <= 255 and 0 <= rg2 <= 255 and 0 <= rg3 <= 255):
+                    return True
+                else:
+                    return False
             else:
                 return False
         except ValueError:
             return False
 
-#--------------------------------- Fonction de renvoie ----------------------------------------------------------------#
+#--------------------------------- Fonction d'envoie de requete -------------------------------------------------------#
 
     def ChoixCouleur(self):
         couleurs = askcolor(title="Palette de couleurs")
         if couleurs[0] != None:
-            self.SubmitRequet(couleurs[0][0], couleurs[0][1], couleurs[0][2])
+            if(self.nbBoucle == 0): self.adapter.FCC(couleurs[0][0], couleurs[0][1], couleurs[0][2])
             self.btnCouleur["bg"] = couleurs[1]
-            self.AjouterListe("Changer couleur en " + str(couleurs[0][0]) + "," + str(couleurs[0][1]) + "," + str(couleurs[0][2]))
-
-
-#--------------------------------- Fonction d'envoie de requete -------------------------------------------------------#
-    # format attendu:
-    # Visuel --> {NomFonction} : {arg1} {arg2} {arg..}
-    def SubmitRequet(self, *args):
-        name = inspect.stack()[1][3]
-        if (name == "ChoixCouleur"): name = "FCC"
-
-        msg = "Visuel --> " + name + " : "
-        flag = 0;
-        for arg in args:
-            if flag: msg += " "
-            else: flag = 1
-            msg += str(arg)
-
-        IvySendMsg(msg)
-
-
+            self.AddCmd("FCC", "Changer couleur en " + str(couleurs[0][0]) + "," + str(couleurs[0][1]) + "," + str(couleurs[0][2]), couleurs[0][0], couleurs[0][1], couleurs[0][2])
 
     def Avancer(self):
         if self.VerifFloat():
-            self.SubmitRequet(float(self.txtBoxBase.get()))
-            self.AjouterListe("Avancer " + self.txtBoxBase.get())
+            if(self.nbBoucle == 0): self.adapter.Avancer(float(self.txtBoxBase.get()))
+            self.AddCmd("Avancer", "Avancer de " + self.txtBoxBase.get(), float(self.txtBoxBase.get()))
 
     def Reculer(self):
         if self.VerifFloat():
-            self.SubmitRequet(float(self.txtBoxBase.get()))
-            self.AjouterListe("Reculer " + self.txtBoxBase.get())
+            if(self.nbBoucle == 0): self.adapter.Reculer(float(self.txtBoxBase.get()))
+            self.AddCmd("Reculer", "Reculer de " + self.txtBoxBase.get(), float(self.txtBoxBase.get()))
 
     def TournerGauche(self):
         if self.VerifFloat():
-            self.SubmitRequet(float(self.txtBoxBase.get()))
-            self.AjouterListe("Tourner à gauche " + self.txtBoxBase.get())
+            if(self.nbBoucle == 0): self.adapter.TournerGauche(float(self.txtBoxBase.get()))
+            self.AddCmd("TournerGauche", "Tourner à gauche " + self.txtBoxBase.get(), float(self.txtBoxBase.get()))
 
     def TournerDroite(self):
         if self.VerifFloat():
-            self.SubmitRequet(float(self.txtBoxBase.get()))
-            self.AjouterListe("Tourner à droite " + self.txtBoxBase.get())
+            if(self.nbBoucle == 0): self.adapter.TournerDroite(float(self.txtBoxBase.get()))
+            self.AddCmd("TournerDroite", "Tourner à droite " + self.txtBoxBase.get(), float(self.txtBoxBase.get()))
 
     def LeverCrayon(self):
-        self.SubmitRequet()
-        self.AjouterListe("Lever le crayon")
+        if(self.nbBoucle == 0): self.adapter.LeverCrayon()
+        # self.AjouterListe("Lever le crayon")
+        self.AddCmd("LeverCrayon", "Lever le crayon")
 
     def BaisserCrayon(self):
-        self.SubmitRequet()
-        self.AjouterListe("Baisser le crayon")
+        if(self.nbBoucle == 0): self.adapter.BaisserCrayon()
+        # self.AjouterListe("Baisser le crayon")
+        self.AddCmd("BaisserCrayon", "Baisser le crayon")
 
     def Origine(self):
-        self.SubmitRequet()
-        self.AjouterListe("Retour à l'origine")
+        if(self.nbBoucle == 0): self.adapter.Origine()
+        # self.AjouterListe("Retour à l'origine")
+        self.AddCmd("Origine", "Retour à l'origine")
 
-    def Restaurer(self):
-        self.SubmitRequet()
-        self.AjouterListe("Restaurer")
+    def Restaurer(self):    #TODO : reset le color pick
+        if(self.nbBoucle == 0): self.adapter.Restaurer()
+        # self.AjouterListe("Restaurer")
+        self.AddCmd("Restaurer", "Restaurer")
+        print(self.inBoucle)
 
     def Nettoyer(self):
-        self.SubmitRequet()
-        self.AjouterListe("Nettoyer")
+        if(self.nbBoucle == 0): self.adapter.Nettoyer()
+        # self.AjouterListe("Nettoyer")
+        self.AddCmd("Nettoyer", "Nettoyer")
 
     def FCC(self):
         if self.VerifRGBFormat():
             listeRGB = self.txtBoxBase.get().split(",")
             couleur = (int(listeRGB[0]), int(listeRGB[1]), int(listeRGB[2]))
-            self.SubmitRequet(int(listeRGB[0]), int(listeRGB[1]), int(listeRGB[2]))
+            if(self.nbBoucle == 0): self.adapter.FCC(int(listeRGB[0]), int(listeRGB[1]), int(listeRGB[2]))
             self.btnCouleur["bg"] = '#%02x%02x%02x' % couleur
-            self.AjouterListe("Changer couleur en " + listeRGB[0] + "," + listeRGB[1] + "," + listeRGB[2])
+            self.AddCmd("FCC", "Changer couleur en " + listeRGB[0] + "," + listeRGB[1] + "," + listeRGB[2], int(listeRGB[0]), int(listeRGB[1]), int(listeRGB[2]))
 
     def FCAP(self):
         if self.VerifFloat():
             angle = float(self.txtBoxBase.get())
             if angle <= 360 and angle >= 0:
-                self.SubmitRequet(angle)
-                self.AjouterListe("Changer angle " + self.txtBoxBase.get() + "°")
+                if(self.nbBoucle == 0): self.adapter.FCAP(angle)
+                self.AddCmd("FCAP", "Changer angle " + self.txtBoxBase.get() + "°", angle)
+
 
     def FPOS(self):
         if self.VerifXYFormat():
             listeCoor = self.txtBoxBase.get().split(",")
-            self.SubmitRequet(float(listeCoor[0]), float(listeCoor[1]))
-            self.AjouterListe("Changer position pour x: " + listeCoor[0] + ", y:" + listeCoor[1])
+            if(self.nbBoucle == 0): self.adapter.FPOS(float(listeCoor[0]), float(listeCoor[1]))
+            self.AddCmd("FPOS", "Changer position pour x: " + listeCoor[0] + ", y:" + listeCoor[1], float(listeCoor[0]), float(listeCoor[1]))
+
+
+    def Repeter(self):
+        if (self.VerifInt()):
+            if(int(self.txtBoxBase.get()) > 0):
+                self.nbRep = int(self.txtBoxBase.get())
+                self.AddCmd("Repeter", "Début répéter " + self.txtBoxBase.get() + " fois :", int(self.txtBoxBase.get()))
+                self.btnFinRepeter["state"] = NORMAL
+                if self.nbBoucle == 1:
+                    self.nbRep = int(self.txtBoxBase.get())
+                    self.indexBoucle = self.listeBoxHistorique.index(END)-1
+
+    def FinRepeter(self):
+        self.AddCmd("FinRepeter", "Fin répéter")
+        if self.nbBoucle == 0:
+            self.ExecuteBoucle(self.inBoucle, self.nbRep)
+            self.inBoucle = []
+            self.btnFinRepeter["state"] = DISABLED
 
 #----------------------------------------------------------------------------------------------------------------------#
 
@@ -170,9 +243,13 @@ class Editeur:
     def __init__(self, _master):
         self.master = _master
         self.running = 1
-        self.listeHistorique = []
-        self.tab = ""
-        self.profondeur = 0
+        self.adapter = AdapterEditeur("Editeur")
+
+        self.nbBoucle = 0
+        self.lstCmd = []
+        self.inBoucle = []
+        self.indexBoucle = 0
+        self.nbRep = 0
 
         self.master.title("Editeur")
         self.master.geometry("600x550")  # A voir si on change la taille
@@ -215,10 +292,10 @@ class Editeur:
         self.btnFPOS = Button(self.panelCommandes, text="changer position", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.FPOS)
         self.btnRepeter = Button(self.panelCommandes, text="répéter", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.Repeter)
         self.btnFinRepeter = Button(self.panelCommandes, text="fin répéter", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, state=DISABLED, command=self.FinRepeter)
-        self.btnEnregistrer = Button(self.panelXML, text="enregistrer", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.Enregistrer)
-        self.btnCharger = Button(self.panelXML, text="charger", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.Charger)
+        self.btnEnregistrer = Button(self.panelXML, text="enregistrer", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SaveXML())
+        self.btnCharger = Button(self.panelXML, text="charger", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.LoadXML())
         self.listeBoxHistorique = Listbox(self.panelHistorique, bg=couleurFond)
-        self.btnSupprimer = Button(self.panelOptions, text="supprimer commande", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SupprimerListe)
+        self.btnSupprimer = Button(self.panelOptions, text="supprimer commande", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SuppCmd)
         # Bouton quitter?
 
         # Disposition des éléments sur les panels
@@ -253,8 +330,7 @@ class Editeur:
         self.panelGauche.pack(fill=X, padx=10, side=LEFT)
         self.panelDroite.pack(fill=X, padx=10, side=RIGHT)
 
-        IvyInit("Editeur")
-        IvyStart()
+        self.adapter.initialisation()
 
 
 Editeur(root)
