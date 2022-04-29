@@ -1,7 +1,10 @@
+import os
+
 from ivy.std_api import *
-from tkinter import Tk, Canvas
+from tkinter import *
 import queue
 import turtle
+from PIL import Image
 
 #TODO : make init state for turtle
 #       reset when Restaure()
@@ -59,7 +62,21 @@ class Visuel:
     def FPOS(self, args):               # argument attendu: float axeX, float axeY
         self.pen.setposition(float(args[0]), float(args[1]))
 
+#----------------------------------------- Zone sauvegarde en img -----------------------------------------------------#
+
+
+        #ATTENTION: partie a commenter si ghostscript n'est pas instaler
+    def SaveImg(self):
+        fileName = "C:\Temp\duck"
+        fileesp = self.pen.getscreen().getcanvas().postscript(file=fileName + '.eps', width=600, height=600)
+        img = Image.open(fileName + '.eps')
+        img.save(fileName + '.jpg')
+        img.close()
+        os.remove(fileName + '.eps')
+
 #----------------------------------------------------------------------------------------------------------------------#
+
+
 
 
     def read_msg(self, *args):   # Ivy msg Handler
@@ -73,11 +90,21 @@ class Visuel:
         self.queue = queue.Queue()
 
         self.master.title("Visuel")
-        self.master.geometry("600x600")
+        self.master.geometry("600x650")
         self.master.configure(bg="#FFFFFF")
 
+        couleurPanel = '#777777'
+        couleurBtn = '#335c67'
+        couleurTxt = '#fff3b0'
+        couleurFond = '#e09f3e'
+
+        self.panelHaut = Frame(self.master, bg=couleurPanel)
+        self.panelBas = Frame(self.master, bg=couleurPanel)
+        self.panelHaut.pack(fill=X, padx=5, pady=5, side=TOP)
+        self.panelBas.pack(fill=X, padx=5, pady=5, side=BOTTOM)
+
         self.canvas = Canvas(
-            self.master,
+            self.panelHaut,
             bg="#FFFFFF",
             height=600,
             width=600,
@@ -85,10 +112,13 @@ class Visuel:
             highlightthickness=0,
             relief="ridge"
         )
-        self.canvas.place(x=0, y=0)
+        self.canvas.pack(fill=X, padx=3, pady=3, side=TOP)
         self.screen = turtle.TurtleScreen(self.canvas)
         self.pen = turtle.RawTurtle(self.screen, shape="turtle") #TODO : changable
         self.pen.screen.colormode(255)
+
+        self.btnCharger = Button(self.panelBas, text="charger", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SaveImg)
+        self.btnCharger.pack(fill=X, ipadx=55)
 
         IvyInit("Visuel")
         IvyStart()
