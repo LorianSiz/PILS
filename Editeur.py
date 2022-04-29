@@ -1,7 +1,4 @@
 import codecs
-import inspect
-import re
-import xml.etree.ElementTree
 from tkinter import *
 from tkinter import filedialog
 from tkinter.colorchooser import askcolor
