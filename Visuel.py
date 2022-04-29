@@ -77,8 +77,6 @@ class Visuel:
 
 #----------------------------------------- Zone sauvegarde en img -----------------------------------------------------#
 
-
-        #ATTENTION: partie a commenter si ghostscript n'est pas instaler
     def SaveImg(self):
         path = filedialog.asksaveasfilename(title="Enregistrement", filetypes=[("fichier jpeg", "*.jpg")])
         if(path):
@@ -92,7 +90,8 @@ class Visuel:
                 os.remove(path + '.eps')
             except Exception:
                 tkinter.messagebox.showwarning("Info exportation image", "L'image sera exporter au format .eps\n"
-                                                                     "En l'absence de ghostscript qui gere la transformation vers .jpg")
+                                                                     "En l'absence de ghostscript et Pillow\n"
+                                                                         "qui gere la transformation vers .jpg")
 
 #----------------------------------------------------------------------------------------------------------------------#
 
