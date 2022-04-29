@@ -10,17 +10,18 @@ class AdapterEditeur:
     # format attendu:
     # Visuel --> {NomFonction} : {arg1} {arg2} {arg..}
     def SubmitRequet(self, *args):
-        name = inspect.stack()[1][3]    # recuppere le nom de la fonction (identique a celui cote visu)
-        msg = "Visuel --> " + name + " : "
-        flag = 0;
-        for arg in args:                # serialise tous les arguments passer en (args)
-            if flag:
-                msg += " "
-            else:
-                flag = 1
-            msg += str(arg)
+        if self.synchro:
+            name = inspect.stack()[1][3]    # recuppere le nom de la fonction (identique a celui cote visu)
+            msg = "Visuel --> " + name + " : "
+            flag = 0;
+            for arg in args:                # serialise tous les arguments passer en (args)
+                if flag:
+                    msg += " "
+                else:
+                    flag = 1
+                msg += str(arg)
 
-        IvySendMsg(msg)
+            IvySendMsg(msg)
 
     # fonction "wrap" permettent l'interfacage entre Enditeur/Adaptateur
     # WARNIG: les fonctions qui suivent doivent imperativement avoir le meme
@@ -62,11 +63,15 @@ class AdapterEditeur:
     def FPOS(self, x, y):
         self.SubmitRequet(x,y)
 
+    def Changer(self):
+        self.SubmitRequet()
+
 #----------------------------------------------------------------------------------------------------------------------#
 
     def __init__(self, name, ip = ""):
         self._name = name
         self._ip = ip
+        self.synchro = 1
 
     def initialisation(self):
         IvyInit(self._name)

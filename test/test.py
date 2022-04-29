@@ -52,9 +52,47 @@
 
 #for i in range(5,-1,-1): print(i)
 
-test = []
-text = ""
-for t in text.split(","): test.append(t)
+# DicoXMLtoCmd = {
+#     "avancer" : ["Avancer", "Avancer de "],
+#     "reculer" : ["Reculer", "Reculer de "],
+#     "droite" : ["TournerDroite", "Tourner à droite "],
+#     "gauche" : ["TournerGauche", "Tourner à gauche "],
+#     "lever" : ["LeverCrayon", "Lever le crayon"],
+#     "baisser" : ["BaisserCrayon", "Baisser le crayon"],
+#     "origine" : ["Origine", "Retour à l'origine"],
+#     "restaurer" : ["Restaurer", "Restaurer"],
+#     "nettoyer" : ["Nettoyer", "Nettoyer"],
+#     "crayon" : ["FCC", "Changer couleur en "],
+#     "cap" : ["FCAP", "Changer angle "],
+#     "position" : ["FPOS", "Changer position pour x y: "],
+#     "répéter" : ["Repeter", "Début répéter "]
+# }
+#
+# for t in DicoXMLtoCmd:
+#     print(t)
 
+#----------------------------------------------------------------------------------------------------------------------#
+
+# import codecs
+# import xml.etree.cElementTree as ET
+#
+# # with open('C:\Temp\Test2.xml') as xml_file:
+# #     xmlstr = xml_file.read()
+# #
+# #     test = str(xmlstr).encode("")
+#
+# s = codecs.open('C:\Temp\Test2.xml', 'r', 'utf-8')
+# xmlstr = s.read()
+#
+# xml = ET.fromstring(xmlstr)
+#
+# for elem in xml:
+#     print(elem)
+
+#----------------------------------------------------------------------------------------------------------------------#
+
+test = [0,1,2,3,4,5,6,7,8,9]
 print(test)
 
+del test[0 : len(test)]
+print(test)

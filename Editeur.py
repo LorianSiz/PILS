@@ -1,16 +1,51 @@
+import codecs
 import inspect
 import re
 import xml.etree.ElementTree
 from tkinter import *
+from tkinter import filedialog
 from tkinter.colorchooser import askcolor
 from AdapterEditeur import AdapterEditeur
 import xml.etree.cElementTree as ET
 
 root = Tk()
 
+DicoXMLtoCmd = {
+    "avancer" : ["Avancer", "Avancer de {1}"],
+    "reculer" : ["Reculer", "Reculer de {1}"],
+    "droite" : ["TournerDroite", "Tourner à droite de {1}°"],
+    "gauche" : ["TournerGauche", "Tourner à gauche de {1}°"],
+    "lever" : ["LeverCrayon", "Lever le crayon"],
+    "baisser" : ["BaisserCrayon", "Baisser le crayon"],
+    "origine" : ["Origine", "Retour à l'origine"],
+    "restaurer" : ["Restaurer", "Restaurer"],
+    "nettoyer" : ["Nettoyer", "Nettoyer"],
+    "crayon" : ["FCC", "Changer couleur en {1},{2},{3}"],
+    "cap" : ["FCAP", "Changer angle {1}°"],
+    "position" : ["FPOS", "Changer position pour x: {1}, y:{2}"],
+    "répéter" : ["Repeter", "Début répéter {1} fois :"]
+}
+DicoCmdtoXML = {
+    "Avancer": ["avancer", ["dist"]],
+    "Reculer": ["reculer", ["dist"]],
+    "TournerDroite": ["droite", ["angle"]],
+    "TournerGauche": ["gauche", ["angle"]],
+    "LeverCrayon": ["lever", []],
+    "BaisserCrayon": ["baisser", []],
+    "Origine": ["origine", []],
+    "Restaurer": ["restaurer", []],
+    "Nettoyer": ["nettoyer", []],
+    "FCC": ["crayon", ["rouge", "vert", "bleu"]],
+    "FCAP": ["cap", ["angle"]],
+    "FPOS": ["position", ["x", "y"]],
+    "Repeter": ["répéter", ["fois"]]
+}
+
+
+
 class Editeur:
 
-#--------------------------------- Fonction de sctokage ---------------------------------------------------------------#
+#--------------------------------- Fonction d'historique --------------------------------------------------------------#
 
     def RefreshEdit(self):
         self.listeBoxHistorique.delete(0, END)
@@ -22,7 +57,11 @@ class Editeur:
 
     def RefreshVisu(self):
         self.adapter.Restaurer()
-        self.ExecuteBoucle(self.lstCmd, 1)
+
+        lst = self.lstCmd.copy()
+        if self.nbBoucle: del lst[self.indexBoucle: len(lst)]
+
+        self.ExecuteBoucle(lst, 1)
 
     def ExecuteBoucle(self, liste, nbRep):
         for i in range(nbRep):
@@ -30,7 +69,7 @@ class Editeur:
             listboucle = []
             for cmd in liste:
                 if(cmd[3] == 0):
-                    if(cmd[0] == "Repeter"): nbRepBoucle = cmd[2][0]
+                    if(cmd[0] == "Repeter"): nbRepBoucle = int(cmd[2][0])
                     elif(cmd[0] == "FinRepeter"):
                         self.ExecuteBoucle(listboucle, nbRepBoucle)
                         listboucle = []
@@ -42,7 +81,6 @@ class Editeur:
                     buffer[3] -= 1
                     listboucle.append(buffer)
 
-
     def AddCmd(self, name, texte, *args):
         if(name == "FinRepeter"): self.nbBoucle-=1
         if(self.nbBoucle != 0): self.inBoucle.append([name, texte, args, self.nbBoucle-1])
@@ -53,7 +91,7 @@ class Editeur:
         self.listeBoxHistorique.insert(END, text)
         if(name == "Repeter"): self.nbBoucle+=1
 
-    def SuppCmd(self):  #TODO : eviter le click sans selelection
+    def SuppCmd(self):
         index = self.listeBoxHistorique.curselection()[0]
 
         self.SuppInList(self.lstCmd, index)
@@ -72,6 +110,8 @@ class Editeur:
 
         self.RefreshEdit()
         self.RefreshVisu()
+
+        self.btnSupprimer["state"] = DISABLED
 
     def SuppInList(self, list, index):
         cmd = list[index].copy()
@@ -93,35 +133,40 @@ class Editeur:
         else:
             del list[index]
 
+    def SelectHisto(self, event):
+        selection = event.widget.curselection()
+        if selection: self.btnSupprimer["state"] = NORMAL
 
-    def SaveXML(self):                  #FIXME: if not nbBoucle --> error
-        root = ET.Element("Turtle")
+#--------------------------------- Fonction XML -----------------------------------------------------------------------#
 
-        for elem in self.CmdToXMLElement(self.lstCmd):
-            root.append(elem)
+    def SaveXML(self):
+        path = filedialog.asksaveasfilename(title="Enregistrement", filetypes=[("fichier Xml", "*.xml")])
+        if(path):
+            path = path.replace(".xml", "")
+            root = ET.Element("Turtle")
 
-        xml = ET.ElementTree(root)
-        xml.write("C:\Temp\Test2.xml")
+            lst = self.lstCmd.copy()
+            if self.nbBoucle: del lst[self.indexBoucle : len(lst)]
+            for elem in self.CmdToXMLElement(lst):
+                root.append(elem)
 
-    def LoadXML(self):                  #FIXME : a finir
-        xml = ET.parse("C:\Temp\Test2.xml")
-        root = xml.getroot()
+            xml = ET.ElementTree(root)
+            xml.write(path + ".xml", "UTF-8")
 
-        self.lstCmd = []
+    def LoadXML(self):
+        path = filedialog.askopenfilename(title="Enregistrement", filetypes=[("fichier Xml", "*.xml")])
+        if (path):
+            s = codecs.open(path, 'r', 'utf-8')
+            xmlstr = s.read()
 
-        elem = list(root)[0]
-        name = elem.tag
-        attribs = elem.attrib
-        args = []
-        for arg in re.sub("[()]", "", attribs["Arguments"]).split(","):
-            if arg: args.append(arg)
-        print(args)
-        self.lstCmd.append([name, attribs["Texte"], args, int(attribs["Etage"])])
+            root = ET.fromstring(xmlstr)
 
-        self.nbBoucle = 0
-        self.inBoucle = []
-        self.RefreshEdit()
-        self.RefreshVisu()
+            self.lstCmd = self.XMLElementToCmd(root, 0)
+
+            self.nbBoucle = 0
+            self.inBoucle = []
+            self.RefreshEdit()
+            self.RefreshVisu()
 
     def CmdToXMLElement(self, _list):
         list = _list.copy()
@@ -141,26 +186,33 @@ class Editeur:
                         flag = 1
                         profSousCmd = cmd[3]
 
-                    elem = ET.Element(str(cmd[0]))
-                    elem.set("Texte", str(cmd[1]))
-                    elem.set("Arguments", str(cmd[2]))
-                    elem.set("Etage", str(cmd[3]))
+                    elem = ET.Element( DicoCmdtoXML[str(cmd[0])][0] )
+                    i = 0
+                    for art in DicoCmdtoXML[str(cmd[0])][1]:
+                        elem.set(art, str(cmd[2][i]))
+                        i += 1
                     elemList.append(elem)
 
         return elemList
 
-    def XMLElementToCmd(self, _list):
-        list = _list.copy()
+    def XMLElementToCmd(self, _list, etage):
+        list = _list
         listCmd = []
 
         for elem in list:
             name = elem.tag
             attribs = elem.attrib
             args = []
-            for arg in re.sub("[()]","", attribs["Arguments"]).split(","):
-                args.append(arg)
-            del args[-1]
-            listCmd.append([name, attribs["Texte"], args, int(attribs["Etage"])])
+            text = DicoXMLtoCmd[name][1]
+            i = 1
+            for arg in attribs:
+                args.append(attribs[arg])
+                text = text.replace(( "{"+str(i)+"}" ), str(attribs[arg]))
+                i += 1
+            listCmd.append([ DicoXMLtoCmd[name][0] , text, args, etage])
+            if (name == DicoCmdtoXML["Repeter"][0]):
+                listCmd += self.XMLElementToCmd(elem, etage+1)
+                listCmd.append(["FinRepeter", "Fin répéter", [], etage])
 
         return listCmd
 
@@ -230,37 +282,32 @@ class Editeur:
     def TournerGauche(self):
         if self.VerifFloat():
             if(self.nbBoucle == 0): self.adapter.TournerGauche(float(self.txtBoxBase.get()))
-            self.AddCmd("TournerGauche", "Tourner à gauche " + self.txtBoxBase.get(), float(self.txtBoxBase.get()))
+            self.AddCmd("TournerGauche", "Tourner à gauche de " + self.txtBoxBase.get() + "°", float(self.txtBoxBase.get()))
 
     def TournerDroite(self):
         if self.VerifFloat():
             if(self.nbBoucle == 0): self.adapter.TournerDroite(float(self.txtBoxBase.get()))
-            self.AddCmd("TournerDroite", "Tourner à droite " + self.txtBoxBase.get(), float(self.txtBoxBase.get()))
+            self.AddCmd("TournerDroite", "Tourner à droite de " + self.txtBoxBase.get() + "°", float(self.txtBoxBase.get()))
 
     def LeverCrayon(self):
         if(self.nbBoucle == 0): self.adapter.LeverCrayon()
-        # self.AjouterListe("Lever le crayon")
         self.AddCmd("LeverCrayon", "Lever le crayon")
 
     def BaisserCrayon(self):
         if(self.nbBoucle == 0): self.adapter.BaisserCrayon()
-        # self.AjouterListe("Baisser le crayon")
         self.AddCmd("BaisserCrayon", "Baisser le crayon")
 
     def Origine(self):
         if(self.nbBoucle == 0): self.adapter.Origine()
-        # self.AjouterListe("Retour à l'origine")
         self.AddCmd("Origine", "Retour à l'origine")
 
-    def Restaurer(self):    #TODO : reset le color pick
+    def Restaurer(self):
         if(self.nbBoucle == 0): self.adapter.Restaurer()
-        # self.AjouterListe("Restaurer")
         self.AddCmd("Restaurer", "Restaurer")
-        print(self.inBoucle)
+        self.btnCouleur["bg"] = '#%02x%02x%02x' % (0,0,0)
 
     def Nettoyer(self):
         if(self.nbBoucle == 0): self.adapter.Nettoyer()
-        # self.AjouterListe("Nettoyer")
         self.AddCmd("Nettoyer", "Nettoyer")
 
     def FCC(self):
@@ -278,13 +325,11 @@ class Editeur:
                 if(self.nbBoucle == 0): self.adapter.FCAP(angle)
                 self.AddCmd("FCAP", "Changer angle " + self.txtBoxBase.get() + "°", angle)
 
-
     def FPOS(self):
         if self.VerifXYFormat():
             listeCoor = self.txtBoxBase.get().split(",")
             if(self.nbBoucle == 0): self.adapter.FPOS(float(listeCoor[0]), float(listeCoor[1]))
             self.AddCmd("FPOS", "Changer position pour x: " + listeCoor[0] + ", y:" + listeCoor[1], float(listeCoor[0]), float(listeCoor[1]))
-
 
     def Repeter(self):
         if (self.VerifInt()):
@@ -303,17 +348,26 @@ class Editeur:
             self.inBoucle = []
             self.btnFinRepeter["state"] = DISABLED
 
+    def ChangerShape(self):
+        self.adapter.Changer()
+
     def ReprendreEnvoi(self):
+        self.adapter.synchro = 1
+        self.RefreshVisu()
         self.btnReprendreEnvoi["state"] = DISABLED
         self.btnArreterEnvoi["state"] = NORMAL
         self.btnEnvoyer["state"] = DISABLED
 
     def ArreterEnvoi(self):
+        self.adapter.synchro = 0
         self.btnReprendreEnvoi["state"] = NORMAL
         self.btnArreterEnvoi["state"] = DISABLED
         self.btnEnvoyer["state"] = NORMAL
 
     def Envoyer(self):
+        self.adapter.synchro = 1
+        self.RefreshVisu()
+        self.adapter.synchro = 0
         print("Envoyer commandes")
 
 #----------------------------------------------------------------------------------------------------------------------#
@@ -374,10 +428,12 @@ class Editeur:
         self.btnEnregistrer = Button(self.panelOptions, text="enregistrer", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SaveXML)
         self.btnCharger = Button(self.panelOptions, text="charger", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.LoadXML)
         self.listeBoxHistorique = Listbox(self.panelHistorique, height=15, bg=couleurFond)
-        self.btnSupprimer = Button(self.panelOptions, text="supprimer commande", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SuppCmd)
+        self.listeBoxHistorique.bind("<<ListboxSelect>>", self.SelectHisto)
+        self.btnSupprimer = Button(self.panelOptions, text="supprimer commande", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SuppCmd, state=DISABLED)
         self.btnReprendreEnvoi = Button(self.panelOptions, text="reprendre l'envoi", font=("Helvetica", 12), bg=couleurBtn,fg=couleurTxt, command=self.ReprendreEnvoi)
         self.btnArreterEnvoi = Button(self.panelOptions, text="arrêter l'envoi", font=("Helvetica", 12), bg=couleurBtn,fg=couleurTxt, command=self.ArreterEnvoi)
         self.btnEnvoyer = Button(self.panelOptions, text="envoyer", font=("Helvetica", 12), bg=couleurBtn,fg=couleurTxt, command=self.Envoyer)
+        self.btnChangerTraceur = Button(self.panelOptions, text="Changer traceur", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.ChangerShape)
         # Bouton quitter?
 
         # Disposition des éléments sur les panels
@@ -407,13 +463,14 @@ class Editeur:
         self.btnEnvoyer.pack(fill=X, ipadx=55, pady=(0,5))
         self.btnEnregistrer.pack(fill=X, ipadx=55)
         self.btnCharger.pack(fill=X, ipadx=55)
+        self.btnChangerTraceur.pack(fill=X, ipadx=55)
 
         # Disposition des panels sur la fenêtre
         self.panelHaut.pack(fill=X, side=TOP)
 
         self.panelCommandes.pack(fill=X, padx=10, pady=10)
-        self.panelHistorique.pack(fill=BOTH, padx=10, pady=10)
-        self.panelOptions.pack(fill=X, padx=10, pady=10)
+        self.panelHistorique.pack(fill=BOTH, padx=10, pady=5)
+        self.panelOptions.pack(fill=X, padx=10, pady=5)
 
         self.panelGauche.pack(fill=Y, pady=3, padx=(3,0), side=LEFT)
         self.panelDroite.pack(fill=Y, pady=3, padx=(0,3), side=RIGHT)

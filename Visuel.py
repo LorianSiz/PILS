@@ -1,19 +1,24 @@
 import os
+import tkinter.messagebox
+from tkinter import filedialog
 
 from ivy.std_api import *
 from tkinter import *
 import queue
 import turtle
-from PIL import Image
-
-#TODO : make init state for turtle
-#       reset when Restaure()
 
 root = Tk();
 
+NextShape = {
+    "arrow" : "turtle",
+    "turtle" : "circle",
+    "circle" : "square",
+    "square" : "triangle",
+    "triangle" : "classic",
+    "classic" : "arrow"
+}
 
 class Visuel:
-
 
 #----------------------------------------- Zone fonction turtle -------------------------------------------------------#
 
@@ -23,56 +28,72 @@ class Visuel:
     # Visuel --> {NomFonction} : {arg1} {arg2} {arg..}      #
     #########################################################
 
-    def Avancer(self, args):            # argument attendu: float distance
+    def Avancer(self, args=[]):            # argument attendu: float distance
         self.pen.forward(float(args[0]))
 
-    def Reculer(self, args):            # argument attendu: float distance
+    def Reculer(self, args=[]):            # argument attendu: float distance
         self.pen.backward(float(args[0]))
 
-    def TournerGauche(self, args):      # argument attendu: float angle
+    def TournerGauche(self, args=[]):      # argument attendu: float angle
         self.pen.left(float(args[0]))
 
-    def TournerDroite(self, args):      # argument attendu: float angle
+    def TournerDroite(self, args=[]):      # argument attendu: float angle
         self.pen.right(float(args[0]))
 
-    def LeverCrayon(self, args):        # argument attendu: None
+    def LeverCrayon(self, args=[]):        # argument attendu: None
         self.pen.penup()
 
-    def BaisserCrayon(self, args):      # argument attendu: None
+    def BaisserCrayon(self, args=[]):      # argument attendu: None
         self.pen.pendown()
 
-    def Restaurer(self, args):                # argument attendu: None
+    def Restaurer(self, args=[]):                # argument attendu: None
         self.pen.reset()
+        self.pen.seth(90)    # a defaut la turtle pointe vers la droite mais la on veux le haut Cf: Sujet
+        self.pen.pendown()
+        self.pen.pencolor(0,0,0)
+        self.currentShape = "turtle"
+        self.pen.shape(self.currentShape)
 
-    def Origine(self, args):            # argument attendu: None
+    def Origine(self, args=[]):            # argument attendu: None
         self.pen.home()
 
-    def Nettoyer(self, args):           # argument attendu: None
+    def Nettoyer(self, args=[]):           # argument attendu: None
         self.pen.clear()
 
-    def FCC(self, args):                # argument attendu: int rouge, int vert, int bleu
+    def FCC(self, args=[]):                # argument attendu: int rouge, int vert, int bleu
         couleur = (int(args[0]), int(args[1]), int(args[2]))
         self.pen.pencolor(couleur)
 
-    def FCAP(self, args):               # argument attendu: float angle
+    def FCAP(self, args=[]):               # argument attendu: float angle
         angle = float(args[0])
         if angle <= 360 and angle >= 0:
             self.pen.seth(angle)
 
-    def FPOS(self, args):               # argument attendu: float axeX, float axeY
+    def FPOS(self, args=[]):               # argument attendu: float axeX, float axeY
         self.pen.setposition(float(args[0]), float(args[1]))
+
+    def Changer(self, args=[]):               # argument attendu: None
+        self.currentShape = NextShape[self.currentShape]
+        self.pen.shape(self.currentShape)
 
 #----------------------------------------- Zone sauvegarde en img -----------------------------------------------------#
 
 
         #ATTENTION: partie a commenter si ghostscript n'est pas instaler
     def SaveImg(self):
-        fileName = "C:\Temp\duck"
-        fileesp = self.pen.getscreen().getcanvas().postscript(file=fileName + '.eps', width=600, height=600)
-        img = Image.open(fileName + '.eps')
-        img.save(fileName + '.jpg')
-        img.close()
-        os.remove(fileName + '.eps')
+        path = filedialog.asksaveasfilename(title="Enregistrement", filetypes=[("fichier jpeg", "*.jpg")])
+        if(path):
+            path = path.replace(".jpg","")
+            fileesp = self.pen.getscreen().getcanvas().postscript(file=path + '.eps', width=600, height=600)
+            try:
+                from PIL import Image
+                img = Image.open(path + '.eps')
+                img.save(path + '.jpg')
+                img.close()
+                os.remove(path + '.eps')
+            except Exception:
+                tkinter.messagebox.showwarning("Info exportation image", "L'image sera exporter au format .eps\n"
+                                                                     "En l'absence de ghostscript qui gere la transformation vers .jpg")
 
 #----------------------------------------------------------------------------------------------------------------------#
 
@@ -114,10 +135,13 @@ class Visuel:
         )
         self.canvas.pack(fill=X, padx=3, pady=3, side=TOP)
         self.screen = turtle.TurtleScreen(self.canvas)
-        self.pen = turtle.RawTurtle(self.screen, shape="turtle") #TODO : changable
+        self.pen = turtle.RawTurtle(self.screen)
+        self.currentShape = "turtle"
+        self.pen.shape(self.currentShape)
         self.pen.screen.colormode(255)
+        self.Restaurer()
 
-        self.btnCharger = Button(self.panelBas, text="charger", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SaveImg)
+        self.btnCharger = Button(self.panelBas, text="télécharger l'image", font=("Helvetica", 12), bg=couleurBtn, fg=couleurTxt, command=self.SaveImg)
         self.btnCharger.pack(fill=X, ipadx=55)
 
         IvyInit("Visuel")
@@ -135,8 +159,7 @@ class Visuel:
             args = None
             if (len(buffer) > 1):
                 args = buffer[1].split(" ")
-            print(args)
-            func(self, args)  #FIXME: peu tomber e erreur si un utilisateur envoie sur le bus 'Visuel -->' erreur a gere
+            func(self, args)
 
 
         if not self.running:
