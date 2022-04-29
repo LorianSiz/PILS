@@ -22,6 +22,8 @@ listeFinPosition = []
 def AccederSousListe(liste, position):
     if len(position) > 1:
         return AccederSousListe(liste[position[0]][0], position[1:])
+    elif len(position) == 0:
+        return liste[0]
     else:
         return liste[position[0]][0]
 
@@ -41,27 +43,31 @@ def SupprimerSousListe(liste, compteur):
     pasAtteint = True
     i = 0
     while pasAtteint and compteur > 0:
-        if compteur == 1:
+        if len(liste) <= i:
+            return (True,compteur)
+        elif compteur == 1:
             if isinstance(liste[i][0], list):
                 liste.pop(i + 1)
                 liste.pop(i)
             elif liste[i][0] == "finRepeter":
                 liste.pop(i)
                 liste.pop(i - 1)
+            else:
+                liste.pop(i)
             pasAtteint = False
             break
-        if isinstance(liste[i][0], list):
+        elif isinstance(liste[i][0], list):
             if len(liste[i][0]) > 0:
-                res = SupprimerSousListe(liste[i][0], compteur-1)
+                res = SupprimerSousListe(liste[i][0], compteur - 1)
                 if not res[0]:
                     pasAtteint = False
                     break
                 else:
-                    compteur -= res[1]
+                    compteur = res[1]
+                    i += 1
             else:
                 i += 1
                 compteur -= 1
-
         else:
             i += 1
             compteur -= 1
@@ -71,6 +77,8 @@ def SupprimerSousListe(liste, compteur):
 
 
 def SupprimerListe():
+    global compteurPos
+
     index = listeBoxHistorique.curselection()[0]
 
     aTiret = True
@@ -86,25 +94,32 @@ def SupprimerListe():
         pasTrouve = True
         i = index
         while pasTrouve and i < listeBoxHistorique.size():
-            if re.search("^[\-]{" + str(nbTiret) + "}Fin$", listeBoxHistorique.get(i)[0:3 + nbTiret]):
+            if re.search("^[\-]{" + str(nbTiret) + "}Fin.*$", listeBoxHistorique.get(i)):
                 listeBoxHistorique.delete(i)
                 pasTrouve = False
+            elif re.search("^[\-]{" + str(nbTiret+1) + ",}.*$", listeBoxHistorique.get(i)):
+                listeBoxHistorique.delete(i)
             else:
                 i += 1
         listeBoxHistorique.delete(index)
     elif tempMot[0:3] == "Fin":
         listeBoxHistorique.delete(index)
         pasTrouve = True
-        i = index
+        i = index-1
         while pasTrouve and i >= 0:
-            if re.search("^[\-]{" + str(nbTiret) + "}Début$", listeBoxHistorique.get(i)[0:5 + nbTiret]):
+            if re.search("^[\-]{" + str(nbTiret) + "}Début.*$", listeBoxHistorique.get(i)):
                 listeBoxHistorique.delete(i)
                 pasTrouve = False
+            elif re.search("^[\-]{" + str(nbTiret+1) + ",}.*$", listeBoxHistorique.get(i)):
+                listeBoxHistorique.delete(i)
+                i -= 1
             else:
                 i -= 1
     else:
         listeBoxHistorique.delete(index)
+
     SupprimerSousListe(listeHistorique, int(index)+1)
+    compteurPos = len(listeHistorique)-1
     #redo commande liste
 
 def VerifFloat():
@@ -137,10 +152,13 @@ def VerifRGBFormat():
     try:
         listeRGB = txtBoxBase.get().split(",")
         if len(listeRGB) == 3:
-            int(listeRGB[0])
-            int(listeRGB[1])
-            int(listeRGB[2])
-            return True
+            rg1 = int(listeRGB[0])
+            rg2 = int(listeRGB[1])
+            rg3 = int(listeRGB[2])
+            if (0 <= rg1 <= 255 and 0 <= rg2 <= 255 and 0 <= rg3 <= 255):
+                return True
+            else:
+                return False
         else:
             return False
     except ValueError:
@@ -221,12 +239,14 @@ def Repeter():
     global compteurPos
 
     if VerifInt():
-        AjouterListe("Début répéter " + txtBoxBase.get() + " fois", list(), txtBoxBase.get())
-        listePosition.append(compteurPos)
-        compteurPos = -1
-        profondeur += 1
-        tab += "-"
-        btnFinRepeter["state"] = NORMAL
+        if int(txtBoxBase.get()) > 0:
+            AjouterListe("Début répéter " + txtBoxBase.get() + " fois", list(), txtBoxBase.get())
+            listePosition.append(compteurPos)
+            compteurPos = -1
+            profondeur += 1
+            tab += "-"
+            btnFinRepeter["state"] = NORMAL
+            btnSupprimer["state"] = DISABLED
 
 def LancerActionsRepeter(liste, nombreBoucles, position):
     for i in range(len(liste)):
@@ -247,6 +267,7 @@ def FinRepeter():
     global profondeur
     global compteurPos
     global listeFinPosition
+    global ancienneProfondeur
 
     dernier = len(listePosition) - 1
     compteurPos = listePosition[dernier]
@@ -259,6 +280,8 @@ def FinRepeter():
         avantDernier = len(listeHistorique)-2
         LancerActionsRepeter(listeHistorique[avantDernier][0], int(listeHistorique[avantDernier][1]), listeFinPosition[1:])
         listeFinPosition = []
+        ancienneProfondeur = 0
+        btnSupprimer["state"] = NORMAL
 
 def Enregistrer():
     print("Enregistrer en xml")
