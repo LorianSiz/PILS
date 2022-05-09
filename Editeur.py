@@ -176,6 +176,8 @@ class Editeur:
                 if (flag) & (cmd[0] == "FinRepeter") & (cmd[3] == profSousCmd):
                     for elem in self.CmdToXMLElement(sousCmd):
                         elemList[-1].append(elem)
+                    flag = 0        #TODO: voir avec le prof qui a peut etre pas ce FIX !!!
+                    sousCmd = []
                 elif flag:
                     sousCmd.append(cmd)
                 else:
